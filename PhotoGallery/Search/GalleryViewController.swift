@@ -12,6 +12,8 @@ class GalleryViewController: UIViewController {
     
     @IBOutlet weak var galleryTableView: UITableView!
     private var bindings = Set<AnyCancellable>()
+    var searchController = UISearchController()
+    var filteredData = [Photo]()
     
     let viewModel:GalleryViewModelType = GalleryViewModel(repository: GalleryRepository())
     
@@ -19,6 +21,14 @@ class GalleryViewController: UIViewController {
         super.viewDidLoad()
         
         bindViewModelState()
+        
+        searchController = ({
+            let controller = UISearchController(searchResultsController: nil)
+            controller.searchResultsUpdater = self
+            controller.searchBar.sizeToFit()
+            galleryTableView.tableHeaderView = controller.searchBar
+            return controller
+        })()
         
         let apiRequest = ApiRequest(baseUrl: EndPoint.baseUrl, path: "", params: ["method"  : EndPoint.photoMethod,"api_key": EndPoint.apiKey, "text" : "cat", "format" : "json", "nojsoncallback" : "1" ])
         
@@ -53,12 +63,20 @@ class GalleryViewController: UIViewController {
 
 extension GalleryViewController : UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.imageCount
+        if  (searchController.isActive) {
+            return filteredData.count
+        } else {
+            return viewModel.imageCount
+        }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let tablecell = tableView.dequeueReusableCell(withIdentifier: "imageCell") as? GalleryImageTableViewCell else { return UITableViewCell() }
-        tablecell.setData(viewModel.images[indexPath.row])
+        if  (searchController.isActive) {
+            tablecell.setData(filteredData[indexPath.row])
+        } else {
+            tablecell.setData(viewModel.images[indexPath.row])
+        }
         return tablecell
     }
     
@@ -113,3 +131,18 @@ extension GalleryViewController {
     
 }
 
+extension GalleryViewController : UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        filteredData.removeAll(keepingCapacity: false)
+        let newDdata = viewModel.images.filter { photo in
+            if let text = photo.title, let searchTtext = searchController.searchBar.text, text.contains(searchTtext){
+                return true
+            }
+            return false
+        }
+        filteredData = newDdata
+        
+        self.galleryTableView.reloadData()
+    }
+    
+}

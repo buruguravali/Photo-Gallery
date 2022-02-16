@@ -20,6 +20,7 @@ protocol GalleryViewModelType {
     var imageCount:Int { get }
     var images:[Photo] { get }
     func getImages(apiRequest: ApiRequestType)
+    func searchImages(keyword: String, apiRequest:ApiRequest)
 }
 
 final class GalleryViewModel: GalleryViewModelType {
@@ -59,6 +60,12 @@ final class GalleryViewModel: GalleryViewModelType {
         }
         self.cancellables.insert(cancalable)
     }
+    func searchImages(keyword: String, apiRequest: ApiRequest) {
+        if keyword .count > 0 {
+            getImages(apiRequest: apiRequest)
+        }
+    }
+    
     
     
     deinit {
